@@ -31,9 +31,8 @@ import org.springframework.context.annotation.Import;
  * {@link org.springframework.context.annotation.Configuration}
  * <code>@Configuration</code> classes.
  *
- * @author Spencer Gibb
- * @author Dave Syer
- * @since 1.0
+ *
+ * 通过EnableFeignClients，引入{@link FeignClientsRegistrar}，在该类中进行一些列的处理
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)

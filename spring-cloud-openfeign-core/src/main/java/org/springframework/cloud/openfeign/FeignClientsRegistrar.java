@@ -1,18 +1,4 @@
-/*
- * Copyright 2013-2021 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+
 
 package org.springframework.cloud.openfeign;
 
@@ -59,14 +45,8 @@ import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
 /**
- * @author Spencer Gibb
- * @author Jakub Narloch
- * @author Venil Noronha
- * @author Gang Li
- * @author Michal Domagala
- * @author Marcin Grzejszczak
- * @author Olga Maciaszek-Sharma
- * @author Jasbir Singh
+ * 改类通过实现{@link ImportBeanDefinitionRegistrar}、{@link ResourceLoaderAware}、{@link EnvironmentAware}动态
+ * 注册Bean
  */
 class FeignClientsRegistrar implements ImportBeanDefinitionRegistrar, ResourceLoaderAware, EnvironmentAware {
 
@@ -147,11 +127,19 @@ class FeignClientsRegistrar implements ImportBeanDefinitionRegistrar, ResourceLo
 
 	@Override
 	public void registerBeanDefinitions(AnnotationMetadata metadata, BeanDefinitionRegistry registry) {
+		//注册缺省配置到容器 registry
 		registerDefaultConfiguration(metadata, registry);
+		//注册所发现的各个 feign 客户端到到容器 registry
 		registerFeignClients(metadata, registry);
 	}
 
+	/**
+	 * 处理，注册{@link EnableFeignClients#defaultConfiguration()}配置信息
+	 * @param metadata
+	 * @param registry
+	 */
 	private void registerDefaultConfiguration(AnnotationMetadata metadata, BeanDefinitionRegistry registry) {
+		//获取@EnableFeignClients的注解信息
 		Map<String, Object> defaultAttrs = metadata.getAnnotationAttributes(EnableFeignClients.class.getName(), true);
 
 		if (defaultAttrs != null && defaultAttrs.containsKey("defaultConfiguration")) {
@@ -162,6 +150,7 @@ class FeignClientsRegistrar implements ImportBeanDefinitionRegistrar, ResourceLo
 			else {
 				name = "default." + metadata.getClassName();
 			}
+			//注册@EnableFeignClients中的defaultConfiguration配置类bean对象
 			registerClientConfiguration(registry, name, defaultAttrs.get("defaultConfiguration"));
 		}
 	}
@@ -169,10 +158,16 @@ class FeignClientsRegistrar implements ImportBeanDefinitionRegistrar, ResourceLo
 	public void registerFeignClients(AnnotationMetadata metadata, BeanDefinitionRegistry registry) {
 
 		LinkedHashSet<BeanDefinition> candidateComponents = new LinkedHashSet<>();
+		/**
+		 * 获取注解{@link EnableFeignClients 的注解属性}
+		 */
 		Map<String, Object> attrs = metadata.getAnnotationAttributes(EnableFeignClients.class.getName());
+		//根据注解获取feign客户端，根据客户端信息获生成BeanDefinition对象，用于注册到spring容器
+		//判断有没有在@EnableFeignClients 定义clients客户端，
 		final Class<?>[] clients = attrs == null ? null : (Class<?>[]) attrs.get("clients");
 		if (clients == null || clients.length == 0) {
 			ClassPathScanningCandidateComponentProvider scanner = getScanner();
+			//通过basePackages 及FeignClient获取feign客户端
 			scanner.setResourceLoader(this.resourceLoader);
 			scanner.addIncludeFilter(new AnnotationTypeFilter(FeignClient.class));
 			Set<String> basePackages = getBasePackages(metadata);
@@ -185,25 +180,33 @@ class FeignClientsRegistrar implements ImportBeanDefinitionRegistrar, ResourceLo
 				candidateComponents.add(new AnnotatedGenericBeanDefinition(clazz));
 			}
 		}
-
+		//循环BeanDefinition集合，进行注册
 		for (BeanDefinition candidateComponent : candidateComponents) {
 			if (candidateComponent instanceof AnnotatedBeanDefinition) {
 				// verify annotated class is an interface
 				AnnotatedBeanDefinition beanDefinition = (AnnotatedBeanDefinition) candidateComponent;
 				AnnotationMetadata annotationMetadata = beanDefinition.getMetadata();
+				//判断是不是@feignClient是否声明在接口上
 				Assert.isTrue(annotationMetadata.isInterface(), "@FeignClient can only be specified on an interface");
 
 				Map<String, Object> attributes = annotationMetadata
 						.getAnnotationAttributes(FeignClient.class.getCanonicalName());
-
+				//生成feign客户端bean名称
 				String name = getClientName(attributes);
+				//注册@feignClient中的configuration配置类bean对象
 				registerClientConfiguration(registry, name, attributes.get("configuration"));
-
+				//注册feign客户端bean
 				registerFeignClient(registry, annotationMetadata, attributes);
 			}
 		}
 	}
 
+	/**
+	 * 注册feign客户端Bean（核心方法）
+	 * @param registry
+	 * @param annotationMetadata
+	 * @param attributes
+	 */
 	private void registerFeignClient(BeanDefinitionRegistry registry, AnnotationMetadata annotationMetadata,
 			Map<String, Object> attributes) {
 		String className = annotationMetadata.getClassName();
@@ -212,6 +215,7 @@ class FeignClientsRegistrar implements ImportBeanDefinitionRegistrar, ResourceLo
 				? (ConfigurableBeanFactory) registry : null;
 		String contextId = getContextId(beanFactory, attributes);
 		String name = getName(attributes);
+		//FeignClientFactoryBean对象，进行FeignClientFactoryBean构造
 		FeignClientFactoryBean factoryBean = new FeignClientFactoryBean();
 		factoryBean.setBeanFactory(beanFactory);
 		factoryBean.setName(name);
@@ -232,6 +236,7 @@ class FeignClientsRegistrar implements ImportBeanDefinitionRegistrar, ResourceLo
 				factoryBean.setFallbackFactory(fallbackFactory instanceof Class ? (Class<?>) fallbackFactory
 						: ClassUtils.resolveClassName(fallbackFactory.toString(), null));
 			}
+			//factoryBean生成feign客户端对象（动态代理）
 			return factoryBean.getObject();
 		});
 		definition.setAutowireMode(AbstractBeanDefinition.AUTOWIRE_BY_TYPE);
@@ -402,10 +407,18 @@ class FeignClientsRegistrar implements ImportBeanDefinitionRegistrar, ResourceLo
 				"Either 'name' or 'value' must be provided in @" + FeignClient.class.getSimpleName());
 	}
 
+	/**
+	 * 注册{@link FeignClient}及{@link EnableFeignClients}中feign的配置类
+	 * @param registry
+	 * @param name
+	 * @param configuration
+	 */
 	private void registerClientConfiguration(BeanDefinitionRegistry registry, Object name, Object configuration) {
+		//生成BeanDefinitionBuilder
 		BeanDefinitionBuilder builder = BeanDefinitionBuilder.genericBeanDefinition(FeignClientSpecification.class);
 		builder.addConstructorArgValue(name);
 		builder.addConstructorArgValue(configuration);
+		//进行配置bean注册
 		registry.registerBeanDefinition(name + "." + FeignClientSpecification.class.getSimpleName(),
 				builder.getBeanDefinition());
 	}

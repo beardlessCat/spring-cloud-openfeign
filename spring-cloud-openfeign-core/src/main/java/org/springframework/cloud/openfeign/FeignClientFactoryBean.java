@@ -380,7 +380,9 @@ public class FeignClientFactoryBean
 		FeignContext context = beanFactory != null ? beanFactory.getBean(FeignContext.class)
 				: applicationContext.getBean(FeignContext.class);
 		Feign.Builder builder = feign(context);
-
+		/**
+		 * 没有url信息，一般指通过注册中心进行调用，例如@FeignClient(name = "test",path="hello")，url->http://test/hello
+		 */
 		if (!StringUtils.hasText(url)) {
 			if (url != null && LOG.isWarnEnabled()) {
 				LOG.warn("The provided URL is empty. Will try picking an instance via load-balancing.");
@@ -395,8 +397,12 @@ public class FeignClientFactoryBean
 				url = name;
 			}
 			url += cleanPath();
+			//生成负载对象
 			return (T) loadBalance(builder, context, new HardCodedTarget<>(type, name, url));
 		}
+		/**
+		 * url有值 例如@FeignClient(name = "test",url="127.0.0.1:8080",path="hello")，url->http://127.0.0.1:8080/hello
+		 */
 		if (StringUtils.hasText(url) && !url.startsWith("http")) {
 			url = "http://" + url;
 		}
@@ -416,6 +422,7 @@ public class FeignClientFactoryBean
 			builder.client(client);
 		}
 		Targeter targeter = get(context, Targeter.class);
+		//生成对象
 		return (T) targeter.target(this, builder, context, new HardCodedTarget<>(type, name, url));
 	}
 
