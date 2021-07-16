@@ -128,7 +128,7 @@ public class FeignClientFactoryBean
 				.decoder(get(context, Decoder.class))
 				.contract(get(context, Contract.class));
 		// @formatter:on
-
+		//配置Feign信息
 		configureFeign(context, builder);
 		applyBuildCustomizers(context, builder);
 
@@ -201,6 +201,7 @@ public class FeignClientFactoryBean
 			connectTimeoutMillis = options.connectTimeoutMillis();
 			followRedirects = options.isFollowRedirects();
 		}
+		//
 		Map<String, RequestInterceptor> requestInterceptors = getInheritedAwareInstances(context,
 				RequestInterceptor.class);
 		if (requestInterceptors != null) {
@@ -377,8 +378,12 @@ public class FeignClientFactoryBean
 	 * information
 	 */
 	<T> T getTarget() {
+		/**
+		 * FeignContext 通过自动装配，在{@link FeignAutoConfiguration#feignContext()}中进行配置
+		 */
 		FeignContext context = beanFactory != null ? beanFactory.getBean(FeignContext.class)
 				: applicationContext.getBean(FeignContext.class);
+		//初始化Feign.Builder
 		Feign.Builder builder = feign(context);
 		/**
 		 * 没有url信息，一般指通过注册中心进行调用，例如@FeignClient(name = "test",path="hello")，url->http://test/hello

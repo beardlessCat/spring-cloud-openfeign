@@ -21,6 +21,8 @@ import feign.Target;
 
 /**
  * @author Spencer Gibb
+ * Targeter有两个实现类，{@link DefaultTargeter}和{@link FeignCircuitBreakerTargeter}，通过自动装配机制，
+ * 引入{@link FeignAutoConfiguration}配置类，根据特定条件实例化接口
  */
 public interface Targeter {
 
