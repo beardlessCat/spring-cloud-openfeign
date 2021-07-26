@@ -1,5 +1,10 @@
 # spring-cloud-openFeign源码解析
-## 一、spring-cloud-openFeign的使用
+## 一、原理图
+### 1. bean 注入
+![Alt text](https://img-blog.csdnimg.cn/19c6835384354a439fd088094466d48c.png)
+### 2. 详细流程
+![Alt text](https://img-blog.csdnimg.cn/189008c337f2470d954573e103fa0ce8.png)
+## 二、spring-cloud-openFeign的使用
 ### 1.启动类中增加@EnableFeignClients注解
 ```java
 @SpringBootApplication
@@ -33,7 +38,7 @@ public class TestController {
     }
 }
 ```
-## 二、工作原理
+## 三、工作原理
 ### 1.客户端的声明
 主要通过@EnableFeignClients及@FeignClient声明feign客户端
 - @FeignClient

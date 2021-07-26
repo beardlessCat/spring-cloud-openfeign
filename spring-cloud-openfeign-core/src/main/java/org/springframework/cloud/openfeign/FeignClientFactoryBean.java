@@ -146,6 +146,11 @@ public class FeignClientFactoryBean
 		additionalCustomizers.forEach(customizer -> customizer.customize(builder));
 	}
 
+	/**
+	 * 配置feign
+	 * @param context
+	 * @param builder
+	 */
 	protected void configureFeign(FeignContext context, Feign.Builder builder) {
 		FeignClientProperties properties = beanFactory != null ? beanFactory.getBean(FeignClientProperties.class)
 				: applicationContext.getBean(FeignClientProperties.class);
@@ -170,6 +175,11 @@ public class FeignClientFactoryBean
 		}
 	}
 
+	/**
+	 * 配置feign使用的配置类
+	 * @param context
+	 * @param builder
+	 */
 	protected void configureUsingConfiguration(FeignContext context, Feign.Builder builder) {
 		Logger.Level level = getInheritedAwareOptional(context, Logger.Level.class);
 		if (level != null) {
@@ -201,7 +211,7 @@ public class FeignClientFactoryBean
 			connectTimeoutMillis = options.connectTimeoutMillis();
 			followRedirects = options.isFollowRedirects();
 		}
-		//
+		//获取拦截器
 		Map<String, RequestInterceptor> requestInterceptors = getInheritedAwareInstances(context,
 				RequestInterceptor.class);
 		if (requestInterceptors != null) {
